@@ -1,51 +1,51 @@
 # Nutrient PDF Plugin for OpenClaw
 
-Nutrient-powered PDF extraction that dramatically improves table, heading, and reading-order preservation compared to the default pdfjs extractor.
+Nutrient-powered PDF extraction that replaces the default pdfjs text extractor with structured Markdown output -- tables, headings, and reading order preserved.
 
-## Benchmark Results (200-document opendataloader-bench)
+![Table comparison: pdfjs word soup vs Nutrient structured markdown](assets/table-comparison.png)
 
-| Engine           | Overall   | Reading Order (NID) | Table Structure (TEDS) | Heading Levels (MHS) |
-| ---------------- | --------- | ------------------- | ---------------------- | -------------------- |
-| **nutrient-pdf** | **0.880** | **0.924**           | **0.662**              | **0.811**            |
-| pdfjs (default)  | 0.578     | 0.871               | 0.000                  | 0.000                |
+## Why
 
-Nutrient scores 52% higher overall, with the gap driven by:
+OpenClaw's default PDF extractor (pdfjs) produces plain text. It scores **0.000** on table structure and **0.000** on heading preservation across 200 real documents.
 
-- **Tables**: 0.662 vs 0.000 — pdfjs produces zero usable table structure
-- **Headings**: 0.811 vs 0.000 — pdfjs loses all heading hierarchy
-- **Reading order**: 0.924 vs 0.871 — Nutrient preserves document flow better
+When an agent asks "what's in row 3, column 4?" it is parsing word soup. Nutrient produces structured Markdown with proper table rows and columns that agents can look up directly.
 
-## Installation
+![Benchmark scores: pdfjs vs Nutrient across 200 documents](assets/benchmark-scores.png)
+
+## Benchmark (200 documents, opendataloader-bench)
+
+| Metric            | pdfjs   | Nutrient | Change  |
+|-------------------|---------|----------|---------|
+| Overall accuracy  | 0.578   | 0.880    | **+52%**|
+| Table structure   | 0.000   | 0.662    | --      |
+| Heading fidelity  | 0.000   | 0.811    | --      |
+| Reading order     | 0.871   | 0.924    | +6%     |
+
+Scored with NID (reading order), TEDS (table structure), and MHS (heading fidelity).
+
+## Install
 
 ```bash
 openclaw plugin install @nutrient-sdk/openclaw-nutrient-pdf
-```
-
-The plugin bundles the `@pspdfkit/pdf-to-markdown` CLI. Verify it's working:
-
-```bash
-openclaw nutrient-pdf status
-```
-
-## Setup
-
-After installing the plugin, enable Nutrient extraction with one command:
-
-```bash
 openclaw config set agents.defaults.pdfExtraction.engine auto
 ```
 
-This tells OpenClaw's `pdf` tool to try Nutrient first and fall back to pdfjs if unavailable. Verify it's working:
+The first command installs the plugin. The second tells OpenClaw to use Nutrient for PDF extraction with automatic pdfjs fallback.
+
+Verify:
 
 ```bash
 openclaw nutrient-pdf status
 ```
 
-## What the plugin provides
+## What it does
 
-1. **`nutrient_pdf_extract` tool** — agents can explicitly request Nutrient extraction
-2. **CLI commands** — `openclaw nutrient-pdf status` and `openclaw nutrient-pdf extract <pdf>`
-3. **Startup check** — logs Nutrient CLI availability and reminds you to enable it if not yet configured
+- The existing `pdf` tool automatically uses Nutrient when the engine is set to `auto`
+- `nutrient_pdf_extract` tool is available for agents to explicitly request Nutrient extraction
+- `openclaw nutrient-pdf extract <file.pdf>` extracts a PDF from the command line
+- Falls back to pdfjs if the Nutrient CLI is not installed or fails
+
+All processing runs locally. No cloud uploads, no API keys.
 
 ## Configuration
 
@@ -57,37 +57,25 @@ Optional settings in your OpenClaw config:
     entries: {
       "nutrient-pdf": {
         config: {
-          command: "pdf-to-markdown", // path to CLI binary
-          timeoutMs: 30000, // extraction timeout per document
-        },
-      },
-    },
-  },
+          command: "pdf-to-markdown",  // path to CLI binary
+          timeoutMs: 30000,            // extraction timeout per document
+        }
+      }
+    }
+  }
 }
 ```
 
-## How It Works
+## Free tier
 
-The plugin wraps Nutrient's `pdf-to-markdown` CLI, which converts PDFs to clean Markdown locally (no cloud uploads). For each PDF:
+The `pdf-to-markdown` CLI includes 1,000 free documents per month. See [nutrient.io](https://nutrient.io) for higher-volume licensing.
 
-1. Writes the PDF to a temp file
-2. Runs `pdf-to-markdown <input.pdf>` which outputs Markdown to stdout
-3. Captures the Markdown with preserved tables (pipe format), headings (`#`), and lists
-4. Falls back to pdfjs if the CLI fails or times out
+## Links
 
-## Free Tier
+- [GitHub](https://github.com/PSPDFKit-labs/openclaw-nutrient-pdf)
+- [OpenClaw PR](https://github.com/openclaw/openclaw/pull/61580)
+- [Nutrient pdf-to-markdown](https://github.com/pspdfkit/pdf-to-markdown)
 
-The `pdf-to-markdown` CLI includes a free tier of 1,000 documents per month. For higher volumes, see [nutrient.io](https://nutrient.io) for licensing options.
+## License
 
-## Development
-
-```bash
-# Check status
-openclaw nutrient-pdf status
-
-# Extract a single PDF
-openclaw nutrient-pdf extract /path/to/document.pdf
-
-# Run the 3-lane benchmark
-pnpm test:pdf:bench3:smoke
-```
+MIT -- see [LICENSE](LICENSE) for details and third-party dependency notice.
