@@ -19,3 +19,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Third-Party Dependency Notice
+
+This plugin depends on `@pspdfkit/pdf-to-markdown`, which is proprietary
+software provided by Nutrient (PSPDFKit GmbH) under separate terms.
+
+- Free use: up to 1,000 documents per calendar month
+- Commercial license required for higher volumes, redistribution, or OEM use
+- Full terms: https://github.com/pspdfkit/pdf-to-markdown/blob/main/LICENSE.md
+- Contact: sales@nutrient.io
