@@ -7,24 +7,24 @@
  * improvement driven by table structure (0.662 vs 0.000) and heading
  * preservation (0.811 vs 0.000).
  *
- * When autoEnable is true (default), the plugin automatically configures
- * the PDF extraction engine to "auto" — Nutrient first with pdfjs fallback.
+ * After installing, enable with:
+ *   openclaw config set agents.defaults.pdfExtraction.engine auto
  */
 
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import {
   extractWithNutrientCli,
   getNutrientCliVersion,
   isNutrientCliAvailable,
+  validatePdfPath,
   type NutrientCliConfig,
 } from "./src/nutrient-cli.js";
 
 type PluginConfig = {
   command?: string;
   timeoutMs?: number;
-  autoEnable?: boolean;
 };
 
 function resolveConfig(api: OpenClawPluginApi): PluginConfig {
@@ -32,7 +32,6 @@ function resolveConfig(api: OpenClawPluginApi): PluginConfig {
   return {
     command: typeof raw?.command === "string" ? raw.command : undefined,
     timeoutMs: typeof raw?.timeoutMs === "number" ? raw.timeoutMs : undefined,
-    autoEnable: typeof raw?.autoEnable === "boolean" ? raw.autoEnable : true,
   };
 }
 
@@ -49,7 +48,7 @@ export default definePluginEntry({
     };
 
     // ------------------------------------------------------------------
-    // Startup: check CLI availability and auto-configure extraction engine
+    // Startup: check CLI availability and log configuration guidance
     // ------------------------------------------------------------------
 
     void (async () => {
@@ -63,9 +62,7 @@ export default definePluginEntry({
       }
 
       const version = await getNutrientCliVersion(config.command);
-      api.logger.info(
-        `nutrient-pdf: CLI available${version ? ` (${version})` : ""}`,
-      );
+      api.logger.info(`nutrient-pdf: CLI available${version ? ` (${version})` : ""}`);
 
       // Check if extraction engine is configured to use Nutrient
       const agentsCfg = api.config as Record<string, unknown>;
@@ -83,7 +80,9 @@ export default definePluginEntry({
           "nutrient-pdf: To enable Nutrient extraction, run: openclaw config set agents.defaults.pdfExtraction.engine auto",
         );
       } else if (currentEngine === "auto" || currentEngine === "nutrient") {
-        api.logger.info(`nutrient-pdf: extraction engine is '${currentEngine}' -- Nutrient is active`);
+        api.logger.info(
+          `nutrient-pdf: extraction engine is '${currentEngine}' -- Nutrient is active`,
+        );
       }
     })();
 
@@ -121,7 +120,8 @@ export default definePluginEntry({
           }
 
           try {
-            const buffer = readFileSync(pdfPath);
+            // Validate path: enforce .pdf extension and size cap
+            const { buffer } = await validatePdfPath(pdfPath);
             const result = await extractWithNutrientCli(buffer, cliConfig);
             return {
               content: [{ type: "text", text: result.markdown }],
@@ -156,9 +156,7 @@ export default definePluginEntry({
 
     api.registerCli(
       ({ program }) => {
-        const cmd = program
-          .command("nutrient-pdf")
-          .description("Nutrient PDF extraction plugin");
+        const cmd = program.command("nutrient-pdf").description("Nutrient PDF extraction plugin");
 
         cmd
           .command("status")
@@ -167,10 +165,11 @@ export default definePluginEntry({
             const available = await isNutrientCliAvailable(config.command);
             const version = available ? await getNutrientCliVersion(config.command) : null;
             console.log(`Nutrient CLI: ${available ? "available" : "not found"}`);
-            if (version) { console.log(`Version: ${version}`); }
-            console.log(`Command: ${config.command ?? "pdf-to-markdown"}`);
+            if (version) {
+              console.log(`Version: ${version}`);
+            }
+            console.log(`Command: ${config.command ?? "pdf-to-markdown (auto-resolved)"}`);
             console.log(`Timeout: ${config.timeoutMs ?? 30000}ms`);
-            console.log(`Auto-enable: ${config.autoEnable ?? true}`);
           });
 
         cmd
@@ -180,11 +179,13 @@ export default definePluginEntry({
           .action(async (pdfPath: string) => {
             const available = await isNutrientCliAvailable(config.command);
             if (!available) {
-              console.error("Nutrient CLI not found. Install: npm install -g @pspdfkit/pdf-to-markdown");
+              console.error(
+                "Nutrient CLI not found. Install: npm install -g @pspdfkit/pdf-to-markdown",
+              );
               process.exitCode = 1;
               return;
             }
-            const buffer = readFileSync(pdfPath);
+            const { buffer } = await validatePdfPath(pdfPath);
             const result = await extractWithNutrientCli(buffer, cliConfig);
             console.log(result.markdown);
           });

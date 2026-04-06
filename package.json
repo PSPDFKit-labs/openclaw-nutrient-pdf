@@ -1,6 +1,6 @@
 {
-  "name": "@pspdfkit/openclaw-nutrient-pdf",
-  "version": "2026.4.5-beta.1",
+  "name": "@nutrient-sdk/openclaw-nutrient-pdf",
+  "version": "2026.4.5-beta.2",
   "private": false,
   "description": "Nutrient-powered PDF extraction for OpenClaw. Dramatically better table, heading, and reading-order preservation compared to the default pdfjs extractor.",
   "license": "MIT",
@@ -8,7 +8,14 @@
     "type": "git",
     "url": "https://github.com/pspdfkit-labs/openclaw-nutrient-pdf"
   },
-  "keywords": ["openclaw", "plugin", "pdf", "nutrient", "pdf-to-markdown", "extraction"],
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "pdf",
+    "nutrient",
+    "pdf-to-markdown",
+    "extraction"
+  ],
   "type": "module",
   "dependencies": {
     "@pspdfkit/pdf-to-markdown": "1.0.0"
@@ -21,7 +28,7 @@
       "./index.ts"
     ],
     "install": {
-      "npmSpec": "@pspdfkit/openclaw-nutrient-pdf",
+      "npmSpec": "@nutrient-sdk/openclaw-nutrient-pdf",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.4.1"
     },
