@@ -2,25 +2,15 @@
 
 Nutrient-powered PDF extraction that replaces the default pdfjs text extractor with structured Markdown output -- tables, headings, and reading order preserved.
 
+![Table comparison: pdfjs word soup vs Nutrient structured markdown](assets/table-comparison.png)
+
 ## Why
 
 OpenClaw's default PDF extractor (pdfjs) produces plain text. It scores **0.000** on table structure and **0.000** on heading preservation across 200 real documents.
 
-When an agent asks "what's in row 3, column 4?" it is parsing word soup:
+When an agent asks "what's in row 3, column 4?" it is parsing word soup. Nutrient produces structured Markdown with proper table rows and columns that agents can look up directly.
 
-```
-Senate 24 8.3 16.7 House of Representatives 202 9.4 10.4 Cabinet 20 15.0 5.0
-```
-
-Nutrient produces structured Markdown that agents can actually work with:
-
-```markdown
-| Position               | Seats  | Aquino | Ramos |
-|------------------------|--------|--------|-------|
-| Senate                 | 24     | 8.3    | 16.7  |
-| House of Reps          | 202    | 9.4    | 10.4  |
-| Cabinet                | 20     | 15.0   | 5.0   |
-```
+![Benchmark scores: pdfjs vs Nutrient across 200 documents](assets/benchmark-scores.png)
 
 ## Benchmark (200 documents, opendataloader-bench)
 
