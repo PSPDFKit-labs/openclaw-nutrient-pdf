@@ -26,7 +26,7 @@ Scored with NID (reading order), TEDS (table structure), and MHS (heading fideli
 ## Install
 
 ```bash
-openclaw plugin install @nutrient-sdk/openclaw-nutrient-pdf
+openclaw plugins install @nutrient-sdk/openclaw-nutrient-pdf
 openclaw config set agents.defaults.pdfExtraction.engine auto
 ```
 
