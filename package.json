@@ -1,6 +1,6 @@
 {
   "name": "@nutrient-sdk/openclaw-nutrient-pdf",
-  "version": "2026.4.5",
+  "version": "2026.4.15",
   "private": false,
   "description": "Nutrient-powered PDF extraction for OpenClaw. Dramatically better table, heading, and reading-order preservation compared to the default pdfjs extractor.",
   "license": "MIT",
