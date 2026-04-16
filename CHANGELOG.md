@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.4.16
+
+### Added
+
+- Required ClawHub metadata: `openclaw.build.openclawVersion` and `openclaw.compat.minGatewayVersion`. Enables publishing to the ClawHub plugin registry.
+
 ## 2026.4.15
 
 First stable release.
