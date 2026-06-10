@@ -22,6 +22,7 @@
 ### Added
 
 - A `vitest` test suite covering CLI availability detection, command resolution, and PDF path validation.
+- Compiled `dist/` output (a `tsc` build, run on `prepack`) declared via `openclaw.runtimeExtensions`, so the plugin loads as a packaged install through native import and satisfies ClawHub's compiled-output publish requirement.
 
 ## 2026.4.16
 
