@@ -1,20 +1,22 @@
 /**
  * OpenClaw Nutrient PDF Plugin
  *
- * Provides Nutrient-powered PDF-to-Markdown extraction as an alternative
- * to the default pdfjs text extractor. On the 200-document opendataloader
- * benchmark, Nutrient scores 0.880 overall vs pdfjs at 0.578 — a 52%
- * improvement driven by table structure (0.662 vs 0.000) and heading
- * preservation (0.811 vs 0.000).
+ * Provides explicit, on-demand Nutrient-powered PDF extraction:
+ *   - the `nutrient_pdf_extract` agent tool, and
+ *   - the `openclaw nutrient-pdf` CLI.
  *
- * After installing, enable with:
- *   openclaw config set agents.defaults.pdfExtraction.engine auto
+ * Note: OpenClaw's built-in `pdf` tool performs its own extraction via the
+ * bundled `document-extract` plugin (the `clawpdf` engine). OpenClaw does not
+ * currently expose a hook for an external plugin to replace that built-in
+ * extractor, so this plugin is an explicit-invocation supplement rather than a
+ * drop-in engine for the built-in tool.
  */
 
-import { readFile } from "node:fs/promises";
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { coercePluginConfig } from "./src/config.js";
 import {
+  DEFAULT_TIMEOUT_MS,
   extractWithNutrientCli,
   getNutrientCliVersion,
   isNutrientCliAvailable,
@@ -22,17 +24,16 @@ import {
   type NutrientCliConfig,
 } from "./src/nutrient-cli.js";
 
-type PluginConfig = {
-  command?: string;
-  timeoutMs?: number;
-};
+const INSTALL_HINT = "npm install -g @pspdfkit/pdf-to-markdown";
+const UNAVAILABLE_MESSAGE = `Nutrient PDF CLI is not available. Install with: ${INSTALL_HINT}`;
 
-function resolveConfig(api: OpenClawPluginApi): PluginConfig {
-  const raw = api.pluginConfig as Record<string, unknown> | undefined;
-  return {
-    command: typeof raw?.command === "string" ? raw.command : undefined,
-    timeoutMs: typeof raw?.timeoutMs === "number" ? raw.timeoutMs : undefined,
-  };
+/**
+ * Returns an error message when the CLI is unavailable, or null when it is ready.
+ * Single source of truth for the three call sites that gate on availability.
+ */
+async function ensureCliAvailable(command?: string): Promise<string | null> {
+  const available = await isNutrientCliAvailable(command);
+  return available ? null : UNAVAILABLE_MESSAGE;
 }
 
 export default definePluginEntry({
@@ -41,7 +42,7 @@ export default definePluginEntry({
   description: "Nutrient-powered PDF extraction with markdown table and heading preservation",
 
   register(api: OpenClawPluginApi) {
-    const config = resolveConfig(api);
+    const config = coercePluginConfig(api.pluginConfig);
     const cliConfig: NutrientCliConfig = {
       command: config.command,
       timeoutMs: config.timeoutMs,
@@ -54,36 +55,15 @@ export default definePluginEntry({
     void (async () => {
       const available = await isNutrientCliAvailable(config.command);
       if (!available) {
-        api.logger.warn(
-          "nutrient-pdf: pdf-to-markdown CLI not found. " +
-            "Install with: npm install -g @pspdfkit/pdf-to-markdown",
-        );
+        api.logger.warn(`nutrient-pdf: pdf-to-markdown CLI not found. Install with: ${INSTALL_HINT}`);
         return;
       }
 
       const version = await getNutrientCliVersion(config.command);
       api.logger.info(`nutrient-pdf: CLI available${version ? ` (${version})` : ""}`);
-
-      // Check if extraction engine is configured to use Nutrient
-      const agentsCfg = api.config as Record<string, unknown>;
-      const defaults = (agentsCfg?.agents as Record<string, unknown>)?.defaults as
-        | Record<string, unknown>
-        | undefined;
-      const extraction = defaults?.pdfExtraction as Record<string, unknown> | undefined;
-      const currentEngine = extraction?.engine as string | undefined;
-
-      if (!currentEngine || currentEngine === "pdfjs") {
-        api.logger.info(
-          "nutrient-pdf: Nutrient CLI is available but the PDF extraction engine is set to 'pdfjs'.",
-        );
-        api.logger.info(
-          "nutrient-pdf: To enable Nutrient extraction, run: openclaw config set agents.defaults.pdfExtraction.engine auto",
-        );
-      } else if (currentEngine === "auto" || currentEngine === "nutrient") {
-        api.logger.info(
-          `nutrient-pdf: extraction engine is '${currentEngine}' -- Nutrient is active`,
-        );
-      }
+      api.logger.info(
+        "nutrient-pdf: use the nutrient_pdf_extract tool or `openclaw nutrient-pdf extract <file.pdf>` for on-demand extraction.",
+      );
     })();
 
     // ------------------------------------------------------------------
@@ -106,15 +86,10 @@ export default definePluginEntry({
         async execute(_toolCallId, params) {
           const { pdf: pdfPath } = params as { pdf: string };
 
-          const available = await isNutrientCliAvailable(config.command);
-          if (!available) {
+          const unavailable = await ensureCliAvailable(config.command);
+          if (unavailable) {
             return {
-              content: [
-                {
-                  type: "text",
-                  text: "Nutrient PDF CLI is not available. Install with: npm install -g @pspdfkit/pdf-to-markdown",
-                },
-              ],
+              content: [{ type: "text", text: unavailable }],
               details: { error: "cli_not_available" },
             };
           }
@@ -151,7 +126,7 @@ export default definePluginEntry({
     );
 
     // ------------------------------------------------------------------
-    // CLI: openclaw nutrient-pdf status
+    // CLI: openclaw nutrient-pdf status | extract
     // ------------------------------------------------------------------
 
     api.registerCli(
@@ -169,7 +144,7 @@ export default definePluginEntry({
               console.log(`Version: ${version}`);
             }
             console.log(`Command: ${config.command ?? "pdf-to-markdown (auto-resolved)"}`);
-            console.log(`Timeout: ${config.timeoutMs ?? 30000}ms`);
+            console.log(`Timeout: ${config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`);
           });
 
         cmd
@@ -177,17 +152,22 @@ export default definePluginEntry({
           .description("Extract markdown from a PDF")
           .argument("<pdf>", "Path to PDF file")
           .action(async (pdfPath: string) => {
-            const available = await isNutrientCliAvailable(config.command);
-            if (!available) {
-              console.error(
-                "Nutrient CLI not found. Install: npm install -g @pspdfkit/pdf-to-markdown",
-              );
+            const unavailable = await ensureCliAvailable(config.command);
+            if (unavailable) {
+              console.error(unavailable);
               process.exitCode = 1;
               return;
             }
-            const { buffer } = await validatePdfPath(pdfPath);
-            const result = await extractWithNutrientCli(buffer, cliConfig);
-            console.log(result.markdown);
+            try {
+              const { buffer } = await validatePdfPath(pdfPath);
+              const result = await extractWithNutrientCli(buffer, cliConfig);
+              console.log(result.markdown);
+            } catch (error) {
+              console.error(
+                `Nutrient extraction failed: ${error instanceof Error ? error.message : String(error)}`,
+              );
+              process.exitCode = 1;
+            }
           });
       },
       { commands: ["nutrient-pdf"] },
