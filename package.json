@@ -24,9 +24,11 @@
     "structured-markdown"
   ],
   "files": [
+    "dist/",
     "index.ts",
     "api.ts",
-    "src/",
+    "src/nutrient-cli.ts",
+    "src/config.ts",
     "assets/",
     "openclaw.plugin.json",
     "LICENSE",
@@ -35,8 +37,11 @@
   ],
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm run test"
   },
   "dependencies": {
     "@pspdfkit/pdf-to-markdown": "0.2.2",
@@ -54,6 +59,9 @@
   "openclaw": {
     "extensions": [
       "./index.ts"
+    ],
+    "runtimeExtensions": [
+      "./dist/index.js"
     ],
     "install": {
       "npmSpec": "@nutrient-sdk/openclaw-nutrient-pdf",
