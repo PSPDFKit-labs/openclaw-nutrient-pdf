@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.6.3
+
+### Changed
+
+- Packaging only, no functional changes. Republished with the compiled `dist/` build (declared via `openclaw.runtimeExtensions`) and without test files in the tarball. The `2026.6.2` npm release predated the build setup and shipped raw TypeScript sources; `2026.6.3` is the clean, compiled artifact published consistently to npm and ClawHub.
+
 ## 2026.6.2
 
 ### Fixed

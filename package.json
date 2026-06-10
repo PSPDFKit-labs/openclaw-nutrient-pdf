@@ -1,12 +1,12 @@
 {
   "name": "@nutrient-sdk/openclaw-nutrient-pdf",
-  "version": "2026.6.2",
+  "version": "2026.6.3",
   "private": false,
   "description": "Explicit Nutrient-powered PDF extraction tool and CLI for OpenClaw. Adds an on-demand nutrient_pdf_extract tool and an openclaw nutrient-pdf CLI for high-fidelity table, heading, and reading-order extraction.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pspdfkit-labs/openclaw-nutrient-pdf"
+    "url": "git+https://github.com/pspdfkit-labs/openclaw-nutrient-pdf.git"
   },
   "keywords": [
     "openclaw",
